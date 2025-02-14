@@ -7,9 +7,12 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import HomeIcon from '@mui/icons-material/Home';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 
-export default function SimpleBottomNavigation() {
-  const [value, setValue] = React.useState(0);
+interface BottomNavigationProps {
+  value: number;
+  onChange: (newValue: number) => void;
+}
 
+export default function SimpleBottomNavigation({ value, onChange }: BottomNavigationProps) {
   return (
     <Box sx={{ 
       width: '100%', 
@@ -22,9 +25,7 @@ export default function SimpleBottomNavigation() {
       <BottomNavigation
         showLabels
         value={value}
-        onChange={(event, newValue) => {
-          setValue(newValue);
-        }}
+        onChange={(event, newValue) => onChange(newValue)}
       >
         <BottomNavigationAction label="Home" icon={<HomeIcon />} />
         <BottomNavigationAction label="Calendar" icon={<CalendarTodayIcon />} />

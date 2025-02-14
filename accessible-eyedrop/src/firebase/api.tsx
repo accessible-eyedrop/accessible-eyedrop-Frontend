@@ -5,7 +5,8 @@ import {
   setDoc, 
   updateDoc,
   collection,
-  DocumentData
+  DocumentData,
+  onSnapshot
 } from 'firebase/firestore';
 
 // Interface for User data
@@ -22,6 +23,9 @@ interface AdministrationRecord {
   drops_left_eye: number;
   drops_right_eye: number;
   success: boolean;
+  angle: number;
+  drop_count: number;
+  id?: string;
 }
 
 // Interface for Prescription
@@ -115,4 +119,35 @@ export const getUserBasicInfo = async (
     console.error('Error fetching user basic info:', error);
     throw error;
   }
+};
+
+// Function to listen to a specific administration record
+export const subscribeToAdministrationRecord = (
+  userId: string,
+  recordId: string,
+  onDataChange: (data: AdministrationRecord | null) => void,
+  onError?: (error: Error) => void
+) => {
+  const recordRef = doc(db, `Users/${userId}/administration_records`, recordId);
+  
+  return onSnapshot(
+    recordRef,
+    (snapshot) => {
+      if (snapshot.exists()) {
+        const record = {
+          id: snapshot.id,
+          ...snapshot.data() as AdministrationRecord
+        };
+        onDataChange(record);
+      } else {
+        onDataChange(null);
+      }
+    },
+    (error) => {
+      console.error('Error listening to administration record:', error);
+      if (onError) {
+        onError(error);
+      }
+    }
+  );
 };
