@@ -1,12 +1,19 @@
 'use client'
 import React, { useState, useEffect } from 'react';
 import { Box, Container, Typography, Button, Stepper, Step, StepLabel } from '@mui/material';
-import { addAdministrationRecord } from '../firebase/api';
+import { addAdministrationRecord, subscribeToAdministrationRecord, getLatestAdministrationRecordId } from '../firebase/api';
 import CircularProgress from '@mui/material/CircularProgress';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
+import { db } from '../firebase/config';
 
-
-
+// Import or define the interface
+interface AdministrationRecord {
+  timestamp: number;  // Changed from string to number
+  drops_left_eye: number;
+  success: boolean;
+  angle: number;
+}
 
 interface AdministrationProcessProps {
   onComplete?: () => void;
@@ -25,6 +32,7 @@ export default function AdministrationProcess({ onComplete, onCancel }: Administ
   const [dropCount, setDropCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [checkComplete, setCheckComplete] = useState(false);
+  const [currentRecord, setCurrentRecord] = useState<AdministrationRecord | null>(null);
 
   const handleNext = () => {
     setActiveStep((prevStep) => prevStep + 1);
@@ -36,14 +44,20 @@ export default function AdministrationProcess({ onComplete, onCancel }: Administ
 
   const handleComplete = async () => {
     try {
-      const record = {
-        date: new Date().toISOString().split('T')[0],
-        time: new Date().toLocaleTimeString(),
+      const record: AdministrationRecord = {
+        timestamp: new Date().toLocaleString('en-US', { 
+          timeZone: 'America/Los_Angeles',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit',
+          second: '2-digit',
+          timeZoneName: 'short'
+        }),
         drops_left_eye: dropCount,
-        drops_right_eye: 0, // Update based on your needs
         success: true,
-        angle: angle,
-        drop_count: dropCount
+        angle: angle
       };
 
       await addAdministrationRecord('user_123', record);
@@ -52,6 +66,53 @@ export default function AdministrationProcess({ onComplete, onCancel }: Administ
       setError('Failed to save administration record');
       console.error(err);
     }
+  };
+
+  useEffect(() => {
+    const userId = 'user_123';
+    const recordsRef = collection(db, `Users/${userId}/administration_records`);
+    const q = query(
+      recordsRef,
+      orderBy('timestamp', 'desc'),  // This stays the same as Unix timestamps are sortable
+      limit(1)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      if (!snapshot.empty) {
+        const data = snapshot.docs[0].data();
+        console.log('Reading administration record:', snapshot.docs[0].id);
+        const latestRecord: AdministrationRecord = {
+          timestamp: data.timestamp || Math.floor(Date.now() / 1000),  // Default to current Unix timestamp
+          drops_left_eye: data.drops_left_eye || 0,
+          success: Boolean(data.success),
+          angle: data.angle || 0
+        };
+        
+        setCurrentRecord(latestRecord);
+        setAngle(latestRecord.angle);
+        setDropCount(latestRecord.drops_left_eye);
+        if (latestRecord.success) {
+          setCheckComplete(true);
+        }
+      }
+    }, (error) => {
+      setError('Failed to listen to administration records');
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const formatTimestamp = (timestamp: number) => {
+    return new Date(timestamp * 1000).toLocaleString('en-US', {
+      timeZone: 'America/Los_Angeles',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      second: '2-digit',
+      timeZoneName: 'short'
+    });
   };
 
   const renderStepContent = (step: number) => {
@@ -68,8 +129,15 @@ export default function AdministrationProcess({ onComplete, onCancel }: Administ
         return (
           <Box>
             <Typography variant="h6">Administering Drops:</Typography>
-            <Typography>Current angle: {angle}°</Typography>
-            <Typography>Drops administered: {dropCount}</Typography>
+            <Box>
+            <Typography variant="h6">Confirm Administration:</Typography>
+            <Typography>Successfully administered {dropCount} drops</Typography>
+            <Typography>Final angle: {angle}°</Typography>
+            <Typography> Drop Successful: {currentRecord?.success ? 'Yes' : 'No'}</Typography>
+            {currentRecord && (
+              <Typography>Time: {formatTimestamp(currentRecord.timestamp)}</Typography>
+            )}
+          </Box>
             {/* Add drop administration UI/controls here */}
           </Box>
         );
@@ -79,6 +147,10 @@ export default function AdministrationProcess({ onComplete, onCancel }: Administ
             <Typography variant="h6">Confirm Administration:</Typography>
             <Typography>Successfully administered {dropCount} drops</Typography>
             <Typography>Final angle: {angle}°</Typography>
+            <Typography> Drop Successful: {currentRecord?.success ? 'Yes' : 'No'}</Typography>
+            {currentRecord && (
+              <Typography>Time: {formatTimestamp(currentRecord.timestamp)}</Typography>
+            )}
           </Box>
         );
       default:
@@ -135,7 +207,7 @@ export default function AdministrationProcess({ onComplete, onCancel }: Administ
               <Button
                 variant="contained"
                 color="primary"
-                onClick={handleComplete}
+                onClick={onComplete}
               >
                 Complete
               </Button>

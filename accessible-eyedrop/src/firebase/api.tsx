@@ -6,7 +6,11 @@ import {
   updateDoc,
   collection,
   DocumentData,
-  onSnapshot
+  onSnapshot,
+  query,
+  orderBy,
+  limit,
+  getDocs
 } from 'firebase/firestore';
 
 // Interface for User data
@@ -18,14 +22,10 @@ interface UserData {
 
 // Interface for Administration Record
 interface AdministrationRecord {
-  date: string;
-  time: string;
+  timestamp: string;
   drops_left_eye: number;
-  drops_right_eye: number;
   success: boolean;
   angle: number;
-  drop_count: number;
-  id?: string;
 }
 
 // Interface for Prescription
@@ -150,4 +150,21 @@ export const subscribeToAdministrationRecord = (
       }
     }
   );
+};
+
+// Function to get the latest administration record ID
+export const getLatestAdministrationRecordId = async (userId: string): Promise<string | null> => {
+  try {
+    const recordsRef = collection(db, `Users/${userId}/Administration_records`);
+    const q = query(recordsRef, orderBy('date', 'desc'), orderBy('time', 'desc'), limit(1));
+    const querySnapshot = await getDocs(q);
+    
+    if (!querySnapshot.empty) {
+      return querySnapshot.docs[0].id;
+    }
+    return null;
+  } catch (error) {
+    console.error('Error getting latest administration record:', error);
+    throw error;
+  }
 };
