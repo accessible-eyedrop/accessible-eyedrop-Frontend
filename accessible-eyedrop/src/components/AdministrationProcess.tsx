@@ -22,12 +22,11 @@ interface AdministrationProcessProps {
 
 const steps = [
   'Position Device',
-  'Administer Drops',
   'Confirm Administration'
 ];
 
 export default function AdministrationProcess({ onComplete, onCancel }: AdministrationProcessProps) {
-  const [activeStep, setActiveStep] = useState(1);
+  const [activeStep, setActiveStep] = useState(0);
   const [angle, setAngle] = useState(0);
   const [dropCount, setDropCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -73,7 +72,7 @@ export default function AdministrationProcess({ onComplete, onCancel }: Administ
     const recordsRef = collection(db, `Users/${userId}/administration_records`);
     const q = query(
       recordsRef,
-      orderBy('timestamp', 'desc'),  // This stays the same as Unix timestamps are sortable
+      orderBy('timestamp', 'desc'),
       limit(1)
     );
 
@@ -82,7 +81,7 @@ export default function AdministrationProcess({ onComplete, onCancel }: Administ
         const data = snapshot.docs[0].data();
         console.log('Reading administration record:', snapshot.docs[0].id);
         const latestRecord: AdministrationRecord = {
-          timestamp: data.timestamp || Math.floor(Date.now() / 1000),  // Default to current Unix timestamp
+          timestamp: data.timestamp || Math.floor(Date.now() / 1000),
           drops_left_eye: data.drops_left_eye || 0,
           success: Boolean(data.success),
           angle: data.angle || 0
@@ -91,12 +90,13 @@ export default function AdministrationProcess({ onComplete, onCancel }: Administ
         setCurrentRecord(latestRecord);
         setAngle(latestRecord.angle);
         setDropCount(latestRecord.drops_left_eye);
-        if (latestRecord.success) {
-          setCheckComplete(true);
-        }
+        setCheckComplete(true);
+      } else {
+        setCheckComplete(false);
       }
     }, (error) => {
       setError('Failed to listen to administration records');
+      setCheckComplete(false);
     });
 
     return () => unsubscribe();
@@ -117,37 +117,21 @@ export default function AdministrationProcess({ onComplete, onCancel }: Administ
 
   const renderStepContent = (step: number) => {
     switch (step) {
-      case 1:
+      case 0:
         return (
           <Box>
-            <Typography variant="h6">Position the Device:</Typography>
+            <Typography variant="h6">Align the device:</Typography>
             <Typography>Align the device with your eye</Typography>
             {/* Add device positioning UI/feedback here */}
           </Box>
         );
-      case 2:
-        return (
-          <Box>
-            <Typography variant="h6">Administering Drops:</Typography>
-            <Box>
-            <Typography variant="h6">Confirm Administration:</Typography>
-            <Typography>Successfully administered {dropCount} drops</Typography>
-            <Typography>Final angle: {angle}°</Typography>
-            <Typography> Drop Successful: {currentRecord?.success ? 'Yes' : 'No'}</Typography>
-            {currentRecord && (
-              <Typography>Time: {formatTimestamp(currentRecord.timestamp)}</Typography>
-            )}
-          </Box>
-            {/* Add drop administration UI/controls here */}
-          </Box>
-        );
-      case 3:
+      case 1:
         return (
           <Box>
             <Typography variant="h6">Confirm Administration:</Typography>
             <Typography>Successfully administered {dropCount} drops</Typography>
             <Typography>Final angle: {angle}°</Typography>
-            <Typography> Drop Successful: {currentRecord?.success ? 'Yes' : 'No'}</Typography>
+            <Typography>Drop Successful: {currentRecord?.success ? 'Yes' : 'No'}</Typography>
             {currentRecord && (
               <Typography>Time: {formatTimestamp(currentRecord.timestamp)}</Typography>
             )}
@@ -187,41 +171,22 @@ export default function AdministrationProcess({ onComplete, onCancel }: Administ
           </Typography>
         )}
 
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
-          <Button
-            variant="contained"
-            onClick={onCancel}
-            sx={{ mr: 1 }}
-          >
-            Cancel
-          </Button>
-          <Box>
-            <Button
-              disabled={activeStep === 0}
-              onClick={handleBack}
-              sx={{ mr: 1 }}
-            >
-              Back
-            </Button>
-            {activeStep === steps.length - 1 ? (
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={onComplete}
-              >
-                Complete
-              </Button>
-            ) : (
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={handleNext}
-              >
-                Next
-              </Button>
-            )}
-          </Box>
-        </Box>
+<Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
+  <Button
+    variant="contained"
+    onClick={onCancel}
+    sx={{ mr: 1 }}
+  >
+    Cancel
+  </Button>
+  <Button
+    variant="contained"
+    color="primary"
+    onClick={handleComplete}
+  >
+    Complete
+  </Button>
+</Box>
       </Box>
     </Container>
   );
