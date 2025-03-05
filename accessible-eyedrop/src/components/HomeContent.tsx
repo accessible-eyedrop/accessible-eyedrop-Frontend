@@ -1,21 +1,34 @@
 'use client'
 import * as React from "react";
-import {useEffect} from "react";
-import BottomNavigation from "@/components/BottomNavigation";
-import { Typography, Button, Container, IconButton, Box } from "@mui/material";
+import { useEffect, useState } from "react";
+import { 
+  Typography, 
+  Box, 
+  Container, 
+  IconButton, 
+  Button,
+  Card, 
+  CardContent,
+  Avatar,
+  Badge
+} from "@mui/material";
 import NotificationsIcon from '@mui/icons-material/Notifications';
-import StatusCard from "@/components/StatusCard";
-import { CircularProgressbar } from 'react-circular-progressbar';
-import 'react-circular-progressbar/dist/styles.css';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import BottomNavigation from "@/components/BottomNavigation";
 import { useUserInfo } from '@/context/UserInfoContext';
 import AdministrationProcess from './AdministrationProcess';
+import UserGreeting from './UserGreeting';
+import DeviceConnection from './DeviceConnection';
+import ProgressCircle from './ProgressCircle';
+import MedicationCard from './MedicationCard';
 
 export default function HomeContent() {
-  const [notifications, setNotifications] = React.useState(false);
-  const [progress, setProgress] = React.useState(0);
-  const [totalMedications, setTotalMedications] = React.useState(1);
+  const [currentTab, setCurrentTab] = useState(0);
   const { userInfo, loading, error, fetchUserInfo } = useUserInfo();
-  const [currentTab, setCurrentTab] = React.useState(0);
+  const [completedDrops, setCompletedDrops] = useState(3);
+  const [totalDrops, setTotalDrops] = useState(5);
+  const progressValue = (completedDrops / totalDrops) * 100;
+  const [individualProgress, setIndividualProgress] = useState(1);
 
   useEffect(() => {
     fetchUserInfo('user_123');
@@ -27,61 +40,43 @@ export default function HomeContent() {
         return <AdministrationProcess />;
       default:
         return (
-          <>
-            <Container>
-              <Box>
-                <Typography variant="h4">
-                  Hello {userInfo?.name || 'User'}!
-                </Typography>
-                <Typography variant="subtitle1">
-                  Good Morning!
-                </Typography>
-              </Box>
-            </Container>
-            <Container>
-              <StatusCard />
-            </Container>
-            <Container>
-              <Box>
-                <Typography variant="h5">
-                  You have not administered any medication today.
-                </Typography>
-                <Box sx={{ width: '70%', height: '70%', margin: '0 auto' }}>
-                  <CircularProgressbar value={progress} text={`${progress}%`} />
-                </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%', mt: 2 }}>
-                  <Button 
-                    variant="contained" 
-                    color="primary" 
-                    sx={{ width: '80%' }}
-                    onClick={() => setCurrentTab(2)}
-                  >
-                    Start Medication Administration
-                  </Button>
-                </Box>
-              </Box>
-            </Container>
-          </>
+          <Box sx={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            gap: 3, 
+            pb: 10, 
+            background: 'linear-gradient(180deg, #f0f8ff 0%, #ffffff 100%)', 
+            minHeight: '100vh',
+            overflowY: 'auto'
+          }}>
+            {/* User greeting section */}
+            <UserGreeting />
+
+            {/* Device connection card */}
+            <DeviceConnection />
+
+            {/* Progress circle */}
+            <ProgressCircle progressValue={progressValue} completedDrops={completedDrops} totalDrops={totalDrops} />
+
+            {/* Medication card */}
+            <MedicationCard progress={individualProgress} time="12:00 PM" condition="Glaucoma" medicationName="Alcaftadine 0.25%" instructions="3 drops each eye, twice a day" />
+          </Box>
         );
     }
   };
 
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error}</div>;
+  if (loading) return <Box sx={{ p: 3 }}>Loading...</Box>;
+  if (error) return <Box sx={{ p: 3 }}>Error: {error}</Box>;
   
   return (
-    <>
-      <Container>
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-          <IconButton>
-            <NotificationsIcon />
-          </IconButton>
-        </Box>
-      </Container>
+    <Box sx={{ 
+      display: 'flex', 
+      flexDirection: 'column', 
+      minHeight: '100vh',
+      overflowY: 'auto'
+    }}>
       {renderContent()}
-      <Container>
-        <BottomNavigation value={currentTab} onChange={(val) => setCurrentTab(val)} />
-      </Container>
-    </>
+      <BottomNavigation value={currentTab} onChange={(val) => setCurrentTab(val)} />
+    </Box>
   );
-} 
+}
