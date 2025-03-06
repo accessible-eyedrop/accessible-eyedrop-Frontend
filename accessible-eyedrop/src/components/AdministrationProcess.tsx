@@ -9,10 +9,10 @@ import { db } from '../firebase/config';
 
 // Import or define the interface
 interface AdministrationRecord {
-  timestamp: number;  // Changed from string to number
+  timestamp: number;  // Unix timestamp in seconds
   drops_left_eye: number;
   success: boolean;
-  angle: number;
+  angle: number; //Positive: Too much tilt ; Negative: Not enough Tile
 }
 
 interface AdministrationProcessProps {
@@ -22,12 +22,11 @@ interface AdministrationProcessProps {
 
 const steps = [
   'Position Device',
-  'Administer Drops',
   'Confirm Administration'
 ];
 
 export default function AdministrationProcess({ onComplete, onCancel }: AdministrationProcessProps) {
-  const [activeStep, setActiveStep] = useState(1);
+  const [activeStep, setActiveStep] = useState(0);
   const [angle, setAngle] = useState(0);
   const [dropCount, setDropCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -42,47 +41,26 @@ export default function AdministrationProcess({ onComplete, onCancel }: Administ
     setActiveStep((prevStep) => prevStep - 1);
   };
 
-  const handleComplete = async () => {
-    try {
-      const record: AdministrationRecord = {
-        timestamp: new Date().toLocaleString('en-US', { 
-          timeZone: 'America/Los_Angeles',
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
-          hour: 'numeric',
-          minute: '2-digit',
-          second: '2-digit',
-          timeZoneName: 'short'
-        }),
-        drops_left_eye: dropCount,
-        success: true,
-        angle: angle
-      };
-
-      await addAdministrationRecord('user_123', record);
-      onComplete?.();
-    } catch (err) {
-      setError('Failed to save administration record');
-      console.error(err);
-    }
-  };
-
+  // Add useEffect to set up the database listener
   useEffect(() => {
     const userId = 'user_123';
     const recordsRef = collection(db, `Users/${userId}/administration_records`);
     const q = query(
       recordsRef,
-      orderBy('timestamp', 'desc'),  // This stays the same as Unix timestamps are sortable
+      orderBy('timestamp', 'desc'),
       limit(1)
     );
 
+    console.log('Setting up Firestore listener...'); // Debug log
+
     const unsubscribe = onSnapshot(q, (snapshot) => {
+      console.log('Snapshot received:', snapshot.size); // Debug log
       if (!snapshot.empty) {
         const data = snapshot.docs[0].data();
-        console.log('Reading administration record:', snapshot.docs[0].id);
+        console.log('Reading administration record:', snapshot.docs[0].id, data);
+        
         const latestRecord: AdministrationRecord = {
-          timestamp: data.timestamp || Math.floor(Date.now() / 1000),  // Default to current Unix timestamp
+          timestamp: data.timestamp || Math.floor(Date.now() / 1000),
           drops_left_eye: data.drops_left_eye || 0,
           success: Boolean(data.success),
           angle: data.angle || 0
@@ -91,16 +69,38 @@ export default function AdministrationProcess({ onComplete, onCancel }: Administ
         setCurrentRecord(latestRecord);
         setAngle(latestRecord.angle);
         setDropCount(latestRecord.drops_left_eye);
-        if (latestRecord.success) {
-          setCheckComplete(true);
-        }
+        setCheckComplete(true);
+        setActiveStep(1);
+      } else {
+        console.log('No documents found in snapshot'); // Debug log
       }
     }, (error) => {
+      console.error('Firestore listener error:', error);
       setError('Failed to listen to administration records');
+      setCheckComplete(false);
     });
 
+    // Cleanup subscription on unmount
     return () => unsubscribe();
-  }, []);
+  }, []); // Empty dependency array means this runs once on mount
+
+  const handleComplete = async () => {
+    try {
+      const record: AdministrationRecord = {
+        timestamp: Math.floor(Date.now() / 1000),
+        drops_left_eye: dropCount,
+        success: true,
+        angle: angle
+      };
+
+      console.log('Saving record:', record);
+      await addAdministrationRecord('user_123', record);
+      onComplete?.();
+    } catch (err) {
+      console.error('Error in handleComplete:', err);
+      setError('Failed to save administration record');
+    }
+  };
 
   const formatTimestamp = (timestamp: number) => {
     return new Date(timestamp * 1000).toLocaleString('en-US', {
@@ -117,39 +117,30 @@ export default function AdministrationProcess({ onComplete, onCancel }: Administ
 
   const renderStepContent = (step: number) => {
     switch (step) {
-      case 1:
+      case 0:
         return (
           <Box>
-            <Typography variant="h6">Position the Device:</Typography>
+            <Typography variant="h6">Align the device:</Typography>
             <Typography>Align the device with your eye</Typography>
             {/* Add device positioning UI/feedback here */}
           </Box>
         );
-      case 2:
-        return (
-          <Box>
-            <Typography variant="h6">Administering Drops:</Typography>
-            <Box>
-            <Typography variant="h6">Confirm Administration:</Typography>
-            <Typography>Successfully administered {dropCount} drops</Typography>
-            <Typography>Final angle: {angle}°</Typography>
-            <Typography> Drop Successful: {currentRecord?.success ? 'Yes' : 'No'}</Typography>
-            {currentRecord && (
-              <Typography>Time: {formatTimestamp(currentRecord.timestamp)}</Typography>
-            )}
-          </Box>
-            {/* Add drop administration UI/controls here */}
-          </Box>
-        );
-      case 3:
+      case 1:
         return (
           <Box>
             <Typography variant="h6">Confirm Administration:</Typography>
-            <Typography>Successfully administered {dropCount} drops</Typography>
-            <Typography>Final angle: {angle}°</Typography>
-            <Typography> Drop Successful: {currentRecord?.success ? 'Yes' : 'No'}</Typography>
-            {currentRecord && (
-              <Typography>Time: {formatTimestamp(currentRecord.timestamp)}</Typography>
+            {currentRecord ? (
+              <>
+                <Typography>Successfully administered {dropCount} drops</Typography>
+                <Typography>Final angle: {angle}°</Typography>
+                <Typography>Drop Successful: {currentRecord.success ? 'Yes' : 'No'}</Typography>
+                <Typography>Time: {formatTimestamp(currentRecord.timestamp)}</Typography>
+              </>
+            ) : (
+              <>
+                <Typography>Ready to administer drops</Typography>
+                <Typography>Current angle: {angle}°</Typography>
+              </>
             )}
           </Box>
         );
@@ -195,32 +186,13 @@ export default function AdministrationProcess({ onComplete, onCancel }: Administ
           >
             Cancel
           </Button>
-          <Box>
-            <Button
-              disabled={activeStep === 0}
-              onClick={handleBack}
-              sx={{ mr: 1 }}
-            >
-              Back
-            </Button>
-            {activeStep === steps.length - 1 ? (
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={onComplete}
-              >
-                Complete
-              </Button>
-            ) : (
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={handleNext}
-              >
-                Next
-              </Button>
-            )}
-          </Box>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleComplete}
+          >
+            Complete
+          </Button>
         </Box>
       </Box>
     </Container>
