@@ -1,5 +1,6 @@
 import React from 'react';
 import { Box, Typography, Button, Container } from '@mui/material';
+import { useRouter } from 'next/navigation';
 
 interface MedicationDetailProps {
   medicationName: string;
@@ -10,6 +11,7 @@ interface MedicationDetailProps {
   onTakeNow: () => void;
   onRemindLater: () => void;
   onSkip: () => void;
+  onShowAdministration: () => void;
 }
 
 export default function MedicationDetail({
@@ -20,8 +22,16 @@ export default function MedicationDetail({
   lastTaken,
   onTakeNow,
   onRemindLater,
-  onSkip
+  onSkip,
+  onShowAdministration
 }: MedicationDetailProps) {
+  const router = useRouter();
+
+  const handleTakeNow = () => {
+    onTakeNow();
+    router.push('/administration');
+    //onShowAdministration();
+  };
   return (
     <Container 
       sx={{ 
@@ -94,7 +104,7 @@ export default function MedicationDetail({
             py: 1.5,
             backgroundColor: '#4c4cff'
           }}
-          onClick={onTakeNow}
+          onClick={handleTakeNow}
         >
           Use it now
         </Button>
