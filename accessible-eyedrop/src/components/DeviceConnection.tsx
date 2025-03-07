@@ -54,8 +54,8 @@ export default function DeviceConnection({
             </Box>
             <Box sx={{ 
               position: 'relative', 
-              width: '120px', 
-              height: '120px', 
+              width: '100px', 
+              height: '100px', 
               display: 'flex', 
               alignItems: 'center', 
               mt: -3
@@ -64,12 +64,11 @@ export default function DeviceConnection({
                 src= "/images/device.png" 
                 alt="Eye Drop Device" 
                 style={{ 
-                  width: '100%', 
-                  height: '100%',
+                  width: '300%', 
+                  height: '300%',
                   objectFit: 'contain',
-                  transform: 'rotate(15deg)',
                   position: 'absolute',
-                  top: 0,
+                  top: -50,
                   left: 0
                 }} 
               />
@@ -79,7 +78,6 @@ export default function DeviceConnection({
                   position: 'absolute',
                   top: 0,
                   right: 0,
-                  bgcolor: 'white',
                   color: '#6200ee',
                   borderRadius: 1,
                   p: 0.5,
@@ -91,29 +89,29 @@ export default function DeviceConnection({
                 <Box 
                   component="span" 
                   sx={{ 
-                    display: 'inline-block', 
-                    width: '18px', 
-                    height: '10px', 
-                    border: '1px solid #6200ee',
-                    borderRadius: '2px',
+                    display: 'inline-block',
+                    width: '24px', // Increased from 18px
+                    height: '14px', // Increased from 10px
+                    border: '1px solid white',
+                    borderRadius: '2px', 
                     position: 'relative',
                     '&::before': {
                       content: '""',
                       position: 'absolute',
-                      left: '1px',
-                      top: '1px',
-                      width: '12px',
-                      height: '6px',
-                      bgcolor: '#6200ee'
+                      left: '2px', // Adjusted for larger size
+                      top: '2px', // Adjusted for larger size
+                      width: '16px', // Increased from 12px
+                      height: '8px', // Increased from 6px
+                      bgcolor: 'white'
                     },
                     '&::after': {
                       content: '""',
                       position: 'absolute',
-                      right: '-3px',
-                      top: '3px',
-                      width: '2px',
-                      height: '4px',
-                      bgcolor: '#6200ee',
+                      right: '-4px', // Adjusted for larger size
+                      top: '4px', // Adjusted for larger size
+                      width: '3px', // Increased from 2px
+                      height: '6px', // Increased from 4px
+                      bgcolor: 'white',
                       borderRadius: '0 1px 1px 0'
                     }
                   }}

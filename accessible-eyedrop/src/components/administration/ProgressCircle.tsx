@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Typography, IconButton } from '@mui/material';
 import PauseCircleOutlineIcon from '@mui/icons-material/PauseCircleOutline';
+import { useRouter } from 'next/navigation';
 
 interface ProgressCircleProps {
   dropCount: number;
@@ -9,6 +10,16 @@ interface ProgressCircleProps {
 }
 
 export default function ProgressCircle({ dropCount, targetDrops, onPauseToggle }: ProgressCircleProps) {
+  const router = useRouter();
+
+  const handlePauseClick = () => {
+    // Call the original onPauseToggle function
+    onPauseToggle();
+    
+    // Navigate to the usage page
+    router.push('/usage');
+  };
+
   return (
     <Box 
       sx={{ 
@@ -98,7 +109,7 @@ export default function ProgressCircle({ dropCount, targetDrops, onPauseToggle }
           Press the button and the eye drops will drip automatically.
         </Typography>
         <IconButton 
-          onClick={onPauseToggle}
+          onClick={handlePauseClick}
           sx={{ 
             bgcolor: 'rgba(255, 255, 255, 0.3)', 
             padding: 2

@@ -66,10 +66,10 @@ export default function EyeDropAdministration({
         setCurrentAngle(record.angle);
         
         // Determine angle suitability and message
-        if (record.angle > 10) {
+        if (record.angle < -90) {
           setIsSuitableAngle(false);
           setAngleMessage("Too much tilt");
-        } else if (record.angle < -10) {
+        } else if (record.angle > -45) {
           setIsSuitableAngle(false);
           setAngleMessage("Not enough tilt");
         } else {

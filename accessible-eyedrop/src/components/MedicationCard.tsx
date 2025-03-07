@@ -142,7 +142,8 @@ export default function MedicationCard({
           name: medicationName,
           dosage: instructions,
           time: time,
-          lastTaken: 'Last taken: 2 hours ago'
+          lastTaken: 'Last taken: 2 hours ago',
+          image: 'images/eyedrop.png'
         }}
         onTakeNow={handleTakeNow}
         onRemindLater={handleRemindLater}
